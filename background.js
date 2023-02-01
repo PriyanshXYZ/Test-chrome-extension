@@ -1,65 +1,89 @@
-// Store the start time of the test
-let startTime;
 
-// Store the end time of the test
-let endTime;
+//close tab after 120 mins are over
+chrome.tabs.query({active: true, currentWindow: true}, function(tabs) {
+    var activeTab = tabs[0];
+    setTimeout(function() {
+      chrome.tabs.remove(activeTab.id, function() {});
+    }, 120*1000*60); // 120 mins
+  });
 
-// Store the ID of the active tab
-let activeTabId;
-
-// Store the ID of the window
-let activeWindowId;
-
-// Listen for the browser action to be clicked
-// chrome.action.onClick.addListener((tab)=> {
-//   chrome.tabs.create({url: "https://www.youtube.com"});
-//   // // Store the ID of the active tab
-//   // activeTabId = tab.id;
-
-//   // // Store the ID of the active window
-//   // activeWindowId = tab.windowId;
-
-//   // // Store the start time of the test
-//   // startTime = Date.now();
-
-//   // // Set the active window to full screen mode
-//   // chrome.windows.update(activeWindowId, {state: "fullscreen"});
-
-//   // // Prevent the user from closing the active tab
-//   // chrome.tabs.executeScript(activeTabId, {
-//   //   code: "window.onbeforeunload = function () { return 'You cannot close the tab during the test.'; };"
-//   // });
-
-//   // Listen for changes to the active tab
-//   chrome.tabs.onActivated.addListener(function (activeInfo) {
-//     // Show the popup if the active tab has changed
-//     if (activeTabId !== activeInfo.tabId) {
-//       chrome.browserAction.setPopup({tabId: activeTabId, popup: "popup.html"});
-//     }
-//   });
-// });
-
-// Listen for a message from the content script
-chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
-  switch (request.type) {
-    case "endTest":
-      // Store the end time of the test
-      endTime = Date.now();
-
-      // Allow the user to close the tab
-      chrome.tabs.executeScript(activeTabId, {
-        code: "window.onbeforeunload = null;"
-      });
-
-      // Store the test data in local storage
-      chrome.storage.local.set({
-        startTime: startTime,
-        endTime: endTime
-      });
-
-      // Reset the start time and end time
-      startTime = null;
-      endTime = null;
-      break;
-  }
+// Listen for tab close events
+chrome.tabs.onRemoved.addListener(function(tabId, removeInfo) {
+    // If the current tab is closed, open the popup
+    if (tabId === parseInt(localStorage.getItem("currentTabID"))) {
+        chrome.browserAction.setPopup({popup: "popup.html"});
+        chrome.browserAction.openPopup();
+    }
 });
+
+// Listen for window close events
+chrome.windows.onRemoved.addListener(function(windowId) {
+    // If the current window is closed, open the popup
+    if (windowId === parseInt(localStorage.getItem("currentWindowID"))) {
+        chrome.browserAction.setPopup({popup: "popup.html"});
+        chrome.browserAction.openPopup();
+    }
+});
+// Listen for changes in the current tab
+chrome.tabs.onActivated.addListener(function(activeInfo) {
+    // Get the current active tab
+    chrome.tabs.get(activeInfo.tabId, function(tab) {
+      // If the user switches to a different tab, show an alert
+      if (tab.url !== 'https://w3schools.com/') {
+        alert('Please do not switch tabs or leave the application.');
+      }
+    });
+  });
+  
+  // Listen for changes in the current window
+  chrome.windows.onFocusChanged.addListener(function(windowId) {
+    // If the user switches to a different window, close the active tab
+    if (windowId !== chrome.windows.WINDOW_ID_NONE) {
+        chrome.tabs.query({active: true, currentWindow: true}, function(tabs) {
+            chrome.tabs.remove(tabs[0].id, function() {
+              alert("The active tab has been closed. The test has ended.");
+            });
+          });
+    }
+  });
+  
+// Get the user's IP address
+function getUserIP() {
+    return new Promise((resolve, reject) => {
+      const xhr = new XMLHttpRequest();
+      xhr.open('GET', 'https://api.ipify.org?format=json');
+      xhr.onreadystatechange = function() {
+        if (xhr.readyState === XMLHttpRequest.DONE) {
+          if (xhr.status === 200) {
+            resolve(JSON.parse(xhr.responseText).ip);
+          } else {
+            reject(xhr.statusText);
+          }
+        }
+      };
+      xhr.send();
+    });
+  }
+  
+  // Store the user's IP address in local storage
+  function storeUserIP(ip) {
+    chrome.storage.local.set({ ip: ip }, function() {
+      console.log(`IP address stored: ${ip}`);
+    });
+  }
+  
+  // Store the requirements check information in local storage
+  function storeRequirementsCheck(check) {
+    chrome.storage.local.set({ requirementsCheck: check }, function() {
+      console.log(`Requirements check stored: ${check}`);
+    });
+  }
+  
+  // Get the user's IP address and store it in local storage
+  getUserIP()
+    .then(storeUserIP)
+    .catch(error => console.error(error));
+  
+  // Store the requirements check information in local storage
+  storeRequirementsCheck({ audio: true, camera: true, internetStability: true });
+  

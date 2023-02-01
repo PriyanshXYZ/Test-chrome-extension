@@ -1,20 +1,25 @@
-// content script
 // Use the fullscreen API to activate fullscreen mode
-function openFullscreen() {
-  console.log("Clicked");
-  window.addEventListener('DOMContentLoaded', (event) => {
-    const button = document.getElementById("permission-btn");
-    button.addEventListener('click', () => {
-      document.body.requestFullscreen();
+// Get the "Enter Fullscreen" and "End Test" buttons
+const permissionButton = document.querySelector('#permissionButton');
+const endTestButton = document.querySelector('.end-test-button');
+
+// Handle the "Enter Fullscreen" button click
+permissionButton.addEventListener('click', function() {
+  checkFullScreen();
+  checkRequirements();
+  showPopup();
+});
+  
+// Handle the "End Test" button click
+endTestButton.addEventListener('click', function() {
+  chrome.tabs.query({active: true, currentWindow: true}, function(tabs) {
+    chrome.tabs.remove(tabs[0].id, function() {
+      alert("The active tab has been closed. The test has ended.");
     });
   });
-}
+});
 
-// Trigger the fullscreen mode
-// document.getElementById("permission-btn").addEventListener("click", openFullscreen());
-openFullscreen();
 
-  
   // Prevent multiple tabs from being opened
   window.onbeforeunload = function () {
     alert("You can only have one tab open.");
@@ -28,58 +33,16 @@ openFullscreen();
   
   // Check for audio, camera, and internet stability
   function checkRequirements() {
-    const requirements = ["Audio", "Camera", "Internet stability"];
-    const results = [];
-  
-    for (const requirement of requirements) {
-      // Perform the appropriate check for each requirement
-      switch (requirement) {
-        case "Audio":
-          if (navigator.mediaDevices.getUserMedia) {
-            results.push(requirement + ": OK");
-          } else {
-            results.push(requirement + ": Not OK");
-          }
-          break;
-        case "Camera":
-          if (navigator.mediaDevices.getUserMedia) {
-            results.push(requirement + ": OK");
-          } else {
-            results.push(requirement + ": Not OK");
-          }
-          break;
-        case "Internet stability":
-          // Code to check internet stability
-          checkInternetStability(requirement, results);
-          break;
-        default:
-          break;
-      }
-    }
-    function checkInternetStability(requirement , results) {
-        let startTime, endTime;
-        const URL = "https://www.w3schools.com/";
-      
-        startTime = performance.now();
-        fetch(URL)
-          .then((response) => {
-            endTime = performance.now();
-            const latency = endTime - startTime;
-            if (latency > 500) {
-              results.push(requirement + ": Not OK");
-            } else {
-              results.push(requirement + ": OK");
-            }
-          })
-          .catch((error) => {
-            console.log(error);
-            return;
-          });
-      }
-      
-    // Store the results in local storage
-    localStorage.setItem("requirementCheckResults", JSON.stringify(results));
-    return results;
+    navigator.mediaDevices
+      .getUserMedia({ video: true, audio: true })
+      .then((stream) => {
+        window.localStream = stream;
+        window.localAudio.srcObject = stream;
+        window.localAudio.autoplay = true;
+      })
+      .catch((err) => {
+        console.error(`you got an error: ${err}`);
+      });
   }
   
   // Show a pop-up when the user switches between tabs or applications
@@ -91,14 +54,11 @@ openFullscreen();
       }
     });
   }
-  
-  // Initialize the requirement check and other features when the extension is activated
-  function init() {
-    openFullscreen();
-    checkRequirements();
-    showPopup();
+  function checkFullScreen() {
+    if (!document.fullscreenElement) {
+      document.documentElement.requestFullscreen();
+    }
   }
   
-  init();
   
   

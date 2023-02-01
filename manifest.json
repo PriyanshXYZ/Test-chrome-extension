@@ -1,28 +1,28 @@
 {
-    "manifest_version": 3,
-    "name": "Test Page Extension",
-    "version": "1.0",
-    "description": "An extension that limits the functionality of a test page.",
-    "permissions": [
-      "activeTab",
-      "storage"
-    ],
-    "background": {
-        "service_worker": "background.js"
-    },
-    "content_scripts": [
-      {
-        "matches": ["https://www.w3schools.com/"],
-        "js": [
-          "content.js"
-        ],
-        "css": [
-          "popup.css"
-        ]
-      }
-    ],
-    "action": {
-      "default_popup": "popup.html"
+  "manifest_version": 3,
+  "name": "Test Page Extension",
+  "version": "1.0",
+  "description": "An extension that limits the functionality of a test page.",
+  "permissions": [
+    "activeTab",
+    "storage",
+    "fullscreen"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": ["https://www.w3schools.com/"],
+      "js": [
+        "content.js"
+      ],
+      "css": [
+        "popup.css"
+      ]
     }
+  ],
+  "action": {
+    "default_popup": "popup.html"
   }
-  
+}
